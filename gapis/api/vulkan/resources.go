@@ -835,8 +835,13 @@ func (s ShaderModuleObjectʳ) ResourceData(ctx context.Context, t *api.GlobalSta
 	if err != nil {
 		return nil, fmt.Errorf("Could not get resource data %v", err)
 	}
-	source := shadertools.DisassembleSpirvBinary(words)
-	return api.NewResourceData(&api.Shader{Type: api.ShaderType_Spirv, Source: source}), nil
+	//source := shadertools.DisassembleSpirvBinary(words)
+	source, err := shadertools.ExtractDebugSource(words)
+	if err != nil {
+		source = shadertools.DisassembleSpirvBinary(words)
+	}
+	spirv := shadertools.DisassembleSpirvBinary(words)
+	return api.NewResourceData(&api.Shader{Type: api.ShaderType_Spirv, Source: source, SpirvSource: spirv}), nil
 }
 
 func (shader ShaderModuleObjectʳ) SetResourceData(

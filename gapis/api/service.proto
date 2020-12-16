@@ -156,6 +156,7 @@ message Texture {
 message Shader {
   ShaderType type = 1;
   string source = 2;
+  string spirv_source = 3;
 }
 
 // Program represents a shader resource.

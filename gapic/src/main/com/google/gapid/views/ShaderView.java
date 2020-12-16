@@ -89,6 +89,7 @@ import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.widgets.TabFolder;
+import org.eclipse.swt.widgets.TabItem;
 import org.eclipse.swt.widgets.TreeItem;
 
 import java.util.ArrayList;
@@ -416,7 +417,10 @@ public class ShaderView extends Composite
     }
 
     private SourceViewer createSourcePanel(Composite parent, Source source) {
-      Group group = createGroup(parent, source.label);
+      TabFolder tabFolder = createStandardTabFolder(parent);
+      TabItem tab1 = createStandardTabItem(tabFolder, "SPIR-V");
+
+      Group group = createGroup(tabFolder, source.label);
       SourceViewer viewer =
           new SourceViewer(group, null, SWT.MULTI | SWT.H_SCROLL | SWT.V_SCROLL | SWT.BORDER);
       StyledText textWidget = viewer.getTextWidget();
@@ -424,7 +428,7 @@ public class ShaderView extends Composite
       textWidget.setFont(theme.monoSpaceFont());
       textWidget.setKeyBinding(ST.SELECT_ALL, ST.SELECT_ALL);
       viewer.configure(new GlslSourceConfiguration(theme));
-      viewer.setDocument(GlslSourceConfiguration.createDocument(source.source));
+      viewer.setDocument(GlslSourceConfiguration.createDocument(source.spirvSource));
       textWidget.addListener(SWT.KeyDown, e -> {
         if (isKey(e, SWT.MOD1, 'z') && !isKey(e, SWT.MOD1 | SWT.SHIFT, 'z')) {
           viewer.doOperation(ITextOperationTarget.UNDO);
@@ -432,6 +436,30 @@ public class ShaderView extends Composite
           viewer.doOperation(ITextOperationTarget.REDO);
         }
       });
+
+      tab1.setControl(group);
+
+      TabItem tab2 = createStandardTabItem(tabFolder, "GLSL");
+
+      Group group2 = createGroup(tabFolder, source.label);
+      SourceViewer viewer2 =
+          new SourceViewer(group2, null, SWT.MULTI | SWT.H_SCROLL | SWT.V_SCROLL | SWT.BORDER);
+      StyledText textWidget2 = viewer2.getTextWidget();
+      viewer2.setEditable(type.isEditable());
+      textWidget2.setFont(theme.monoSpaceFont());
+      textWidget2.setKeyBinding(ST.SELECT_ALL, ST.SELECT_ALL);
+      viewer2.configure(new GlslSourceConfiguration(theme));
+      viewer2.setDocument(GlslSourceConfiguration.createDocument(source.source));
+      textWidget2.addListener(SWT.KeyDown, e -> {
+        if (isKey(e, SWT.MOD1, 'z') && !isKey(e, SWT.MOD1 | SWT.SHIFT, 'z')) {
+          viewer2.doOperation(ITextOperationTarget.UNDO);
+        } else if (isKey(e, SWT.MOD1, 'y') || isKey(e, SWT.MOD1 | SWT.SHIFT, 'z')) {
+          viewer2.doOperation(ITextOperationTarget.REDO);
+        }
+      });
+
+      tab2.setControl(group2);
+
       return viewer;
     }
 
@@ -539,21 +567,25 @@ public class ShaderView extends Composite
 
     public static class Source {
       private static final Source EMPTY_PROGRAM = new Source("Program",
+          "// No shaders attached to this program at this point in the trace.",
           "// No shaders attached to this program at this point in the trace.");
       private static final String EMPTY_SHADER =
           "// No source attached to this shader at this point in the trace.";
 
       public final String label;
       public final String source;
+      public final String spirvSource;
 
-      public Source(String label, String source) {
+      public Source(String label, String source, String spirvSource) {
         this.label = label;
         this.source = source;
+        this.spirvSource = spirvSource;
       }
 
       public static Source of(API.Shader shader) {
         return new Source(shader.getType() + " Shader",
-            shader.getSource().isEmpty() ? EMPTY_SHADER : shader.getSource());
+            shader.getSource().isEmpty() ? EMPTY_SHADER : shader.getSource(),
+            shader.getSpirvSource().isEmpty() ? EMPTY_SHADER : shader.getSpirvSource());
       }
 
       public static Source[] of(API.Program program) {
