@@ -19,6 +19,7 @@ cc_library(
         "*.cpp",
         "*.hpp",
     ]),
+    defines = ["SPIRV_CROSS_C_API_GLSL"],
     hdrs = [
         "spirv_glsl.hpp",
     ],

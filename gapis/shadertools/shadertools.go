@@ -17,7 +17,9 @@ package shadertools
 
 //#include "cc/libmanager.h"
 //#include <stdlib.h>
+//#define SPIRV_CROSS_C_API_GLSL 1
 //#include "spirv_reflect.h"
+//#include "spirv_cross_c.h"
 import "C"
 
 import (
@@ -213,7 +215,24 @@ func ExtractDebugSource(shader []uint32) (string, error) {
 	defer C.spvReflectDestroyShaderModule(&module)
 
 	if module.source_source == nil {
-		return "", errors.New("No Source File Detected")
+		var context C.spvc_context = nil
+		var ir C.spvc_parsed_ir = nil
+		var compiler C.spvc_compiler = nil
+		var options C.spvc_compiler_options = nil
+		var result *C.char = nil
+
+		C.spvc_context_create(&context)
+		C.spvc_context_parse_spirv(context, (*C.uint)(shaderPtr), (C.ulong)(len(shader)), &ir)
+		if C.spvc_context_create_compiler(context, C.SPVC_BACKEND_GLSL, ir, C.SPVC_CAPTURE_MODE_TAKE_OWNERSHIP, &compiler) != C.SPVC_ERROR_INVALID_ARGUMENT {
+			C.spvc_compiler_create_compiler_options(compiler, &options);
+			C.spvc_compiler_options_set_uint(options, C.SPVC_COMPILER_OPTION_GLSL_VERSION, module.source_language_version);
+			C.spvc_compiler_options_set_bool(options, C.SPVC_COMPILER_OPTION_GLSL_ES, C.SPVC_TRUE);
+			C.spvc_compiler_install_compiler_options(compiler, options);
+
+			C.spvc_compiler_compile(compiler, &result)
+			return C.GoString(result), nil
+		}
+		return "", errors.New("Could not create compiler")
 	}
 
 	return C.GoString(module.source_source), nil
